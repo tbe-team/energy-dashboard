@@ -7,7 +7,7 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 import device from './components/device.json';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Line, LineChart, Area, AreaChart } from "recharts"
+import { CartesianGrid, XAxis, YAxis, Line, LineChart, Area, AreaChart } from "recharts"
 
 import {
     ChartConfig,
@@ -70,23 +70,23 @@ const DeviceDetail = () => {
     const item: Item = device;
 
     // Prepare data for charts
-    const chartData = item.data.map(data => ({
-        timestamp: data.timestamp,
-        PhaseA: data.voltage[0].phaseA,
-        PhaseB: data.voltage[0].phaseB,
-        PhaseC: data.voltage[0].phaseC,
-        CurrentA: data.current[0].currentA,
-        CurrentB: data.current[0].currentB,
-        CurrentC: data.current[0].currentC,
-        Cosp: data.power[0].cosp,
-        ActivePower: data.power[0].activePower,
-        Energy: data.power[0].energy,
-    }));
+    // const chartData = item.data.map(data => ({
+    //     timestamp: data.timestamp,
+    //     PhaseA: data.voltage[0].phaseA,
+    //     PhaseB: data.voltage[0].phaseB,
+    //     PhaseC: data.voltage[0].phaseC,
+    //     CurrentA: data.current[0].currentA,
+    //     CurrentB: data.current[0].currentB,
+    //     CurrentC: data.current[0].currentC,
+    //     Cosp: data.power[0].cosp,
+    //     ActivePower: data.power[0].activePower,
+    //     Energy: data.power[0].energy,
+    // }));
 
-    const energyData = item.data.map(data => ({
-        timestamp: data.timestamp,
-        Energy: data.power[0].energy,
-    }));
+    // const energyData = item.data.map(data => ({
+    //     timestamp: data.timestamp,
+    //     Energy: data.power[0].energy,
+    // }));
 
     const voltageData = item.data.map(data => ({
         timestamp: data.timestamp,

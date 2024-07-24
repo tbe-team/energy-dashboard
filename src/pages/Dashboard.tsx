@@ -1,4 +1,4 @@
-import React from 'react'
+
 import PowerMeter from './components/PowerMeter'
 
 const Dashboard = () => {
