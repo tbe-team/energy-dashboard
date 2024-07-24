@@ -65,9 +65,11 @@ const PowerMeter = () => {
                     <Card key={item.id} className="w-[270px]">
                         <CardHeader>
                             <CardTitle>
-                                <Label htmlFor={item.id}>
-                                    {item.name}
-                                </Label>
+                                <NavLink to={`/detail`} className="w-full text-xs">
+                                    <Label htmlFor={item.id}>
+                                        {item.name}
+                                    </Label>
+                                </NavLink>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button size="icon" variant="outline" className="w-7 h-7">
@@ -77,8 +79,8 @@ const PowerMeter = () => {
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
                                         <DropdownMenuItem>
-                                            <NavLink to={`/detail`} className="w-full text-xs">Detail</NavLink>                                        </DropdownMenuItem>
-                                        {/* <DropdownMenuItem>Detail</DropdownMenuItem> */}
+                                            <NavLink to={`/detail`} className="w-full text-xs">Detail</NavLink>
+                                        </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </CardTitle>
@@ -125,14 +127,6 @@ const PowerMeter = () => {
                     </Card>
                 ))}
             </div>
-
-
-
-
-
-
-
-
         </>
     );
 }

@@ -7,7 +7,7 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 import device from './components/device.json';
-import { CartesianGrid, XAxis, YAxis, Line, LineChart, Area, AreaChart } from "recharts"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Line, LineChart, Area, AreaChart } from "recharts"
 
 import {
     ChartConfig,
@@ -30,6 +30,10 @@ const chartConfig = {
     phase3: {
         label: "phase3",
         color: "#4cc9f0",
+    },
+    energy: {
+        label: "energy",
+        color: "#f35b04",
     }
 } satisfies ChartConfig
 
@@ -83,10 +87,10 @@ const DeviceDetail = () => {
     //     Energy: data.power[0].energy,
     // }));
 
-    // const energyData = item.data.map(data => ({
-    //     timestamp: data.timestamp,
-    //     Energy: data.power[0].energy,
-    // }));
+    const energyData = item.data.map(data => ({
+        timestamp: data.timestamp,
+        Energy: data.power[0].energy,
+    }));
 
     const voltageData = item.data.map(data => ({
         timestamp: data.timestamp,
@@ -139,16 +143,16 @@ const DeviceDetail = () => {
                             <AreaChart data={currentData}>
                                 <defs>
                                     <linearGradient id="fillCurrentA" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="10%" stopColor={chartConfig.phase1.color} stopOpacity={0.8} />
-                                        <stop offset="90%" stopColor={chartConfig.phase1.color} stopOpacity={0.1} />
+                                        <stop offset="0%" stopColor={chartConfig.phase1.color} stopOpacity={0.9} />
+                                        <stop offset="100%" stopColor={chartConfig.phase1.color} stopOpacity={0.2} />
                                     </linearGradient>
                                     <linearGradient id="fillCurrentB" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="10%" stopColor={chartConfig.phase2.color} stopOpacity={0.8} />
-                                        <stop offset="90%" stopColor={chartConfig.phase2.color} stopOpacity={0.1} />
+                                        <stop offset="0%" stopColor={chartConfig.phase2.color} stopOpacity={0.9} />
+                                        <stop offset="100%" stopColor={chartConfig.phase2.color} stopOpacity={0.2} />
                                     </linearGradient>
                                     <linearGradient id="fillCurrentC" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="10%" stopColor={chartConfig.phase3.color} stopOpacity={0.8} />
-                                        <stop offset="90%" stopColor={chartConfig.phase3.color} stopOpacity={0.1} />
+                                        <stop offset="0%" stopColor={chartConfig.phase3.color} stopOpacity={0.9} />
+                                        <stop offset="100%" stopColor={chartConfig.phase3.color} stopOpacity={0.2} />
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid vertical={false} />
@@ -177,45 +181,18 @@ const DeviceDetail = () => {
 
                 <Card className="h-[300px]">
                     <CardHeader>
-                        <CardTitle>Current</CardTitle>
+                        <CardTitle>Energy Consumption</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full p-2">
-                            <AreaChart data={currentData}>
-                                <defs>
-                                    <linearGradient id="fillCurrentA" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor={chartConfig.phase1.color} stopOpacity={0.8} />
-                                        <stop offset="95%" stopColor={chartConfig.phase1.color} stopOpacity={0.1} />
-                                    </linearGradient>
-                                    <linearGradient id="fillCurrentB" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor={chartConfig.phase2.color} stopOpacity={0.8} />
-                                        <stop offset="95%" stopColor={chartConfig.phase2.color} stopOpacity={0.1} />
-                                    </linearGradient>
-                                    <linearGradient id="fillCurrentC" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor={chartConfig.phase3.color} stopOpacity={0.8} />
-                                        <stop offset="95%" stopColor={chartConfig.phase3.color} stopOpacity={0.1} />
-                                    </linearGradient>
-                                </defs>
+                        <ChartContainer config={chartConfig} className="min-h-[200px] w-full p-2">
+                            <BarChart accessibilityLayer data={energyData}>
                                 <CartesianGrid vertical={false} />
                                 <XAxis dataKey="timestamp" />
                                 <YAxis domain={["dataMin", "dataMax"]} tickCount={5} />
-                                <ChartTooltip
-                                    cursor={false}
-                                    content={
-                                        <ChartTooltipContent
-                                            labelFormatter={(value) => new Date(value).toLocaleDateString("en-US", {
-                                                month: "short",
-                                                day: "numeric",
-                                            })}
-                                            indicator="dot"
-                                        />
-                                    }
-                                />
-                                <Area dataKey="CurrentA" type="natural" fill="url(#fillCurrentA)" stroke={chartConfig.phase1.color} stackId="a" />
-                                <Area dataKey="CurrentB" type="natural" fill="url(#fillCurrentB)" stroke={chartConfig.phase2.color} stackId="a" />
-                                <Area dataKey="CurrentC" type="natural" fill="url(#fillCurrentC)" stroke={chartConfig.phase3.color} stackId="a" />
+                                <ChartTooltip content={<ChartTooltipContent />} />
                                 <ChartLegend content={<ChartLegendContent />} />
-                            </AreaChart>
+                                <Bar dataKey="Energy" fill="var(--color-energy)" radius={4} />
+                            </BarChart>
                         </ChartContainer>
                     </CardContent>
                 </Card>
