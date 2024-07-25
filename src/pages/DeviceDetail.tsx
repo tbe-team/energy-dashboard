@@ -1,233 +1,252 @@
-import { Label } from '@radix-ui/react-label'
+import { useState } from 'react';
+import { useQuery } from "@tanstack/react-query";
+import { useParams } from 'react-router-dom';
+import { cn } from "@/lib/utils";
+import { addDays, format } from "date-fns";
+
+import { getDeviceAttributes } from "@/api/telemetry";
+
+import { Label } from '@radix-ui/react-label';
+import VoltageChart from './components/ChartComponent/VoltageChart';
+import CurrentChart from './components/ChartComponent/CurrentChart';
+import PowerChart from './components/ChartComponent/PowerChart';
+import EnergyConsumptionChart from './components/ChartComponent/EnergyConsumptionChart';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Button } from '@/components/ui/button';
+import { Clock, MapPin, Settings } from 'lucide-react';
 
 import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card"
-import device from './components/device.json';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Line, LineChart, Area, AreaChart } from "recharts"
-
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { Calendar } from "@/components/ui/calendar";
 import {
-    ChartConfig,
-    ChartContainer,
-    ChartLegend,
-    ChartLegendContent,
-    ChartTooltip,
-    ChartTooltipContent,
-} from "@/components/ui/chart"
-
-const chartConfig = {
-    phase1: {
-        label: "phase1",
-        color: "#f35b04",
-    },
-    phase2: {
-        label: "phase2",
-        color: "#aacc00",
-    },
-    phase3: {
-        label: "phase3",
-        color: "#4cc9f0",
-    },
-    energy: {
-        label: "energy",
-        color: "#f35b04",
-    }
-} satisfies ChartConfig
-
-interface Voltage {
-    phaseA: number;
-    phaseB: number;
-    phaseC: number;
-}
-
-interface Current {
-    currentA: number;
-    currentB: number;
-    currentC: number;
-}
-
-interface Power {
-    cosp: number;
-    activePower: number;
-    energy: number;
-}
-
-interface DataItem {
-    timestamp: string;
-    voltage: Voltage[];
-    current: Current[];
-    power: Power[];
-}
-
-interface Item {
-    id: string;
-    name: string;
-    type: string;
-    location: string;
-    data: DataItem[];
-}
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { getDeviceById } from '@/api/device';
 
 const DeviceDetail = () => {
-    const item: Item = device;
+    const { deviceId } = useParams<{ deviceId: string }>();
+    const [timeout, setTimeout] = useState('MINUTE');
+    const [tempTimeout, setTempTimeout] = useState('MINUTE');
 
-    // Prepare data for charts
-    // const chartData = item.data.map(data => ({
-    //     timestamp: data.timestamp,
-    //     PhaseA: data.voltage[0].phaseA,
-    //     PhaseB: data.voltage[0].phaseB,
-    //     PhaseC: data.voltage[0].phaseC,
-    //     CurrentA: data.current[0].currentA,
-    //     CurrentB: data.current[0].currentB,
-    //     CurrentC: data.current[0].currentC,
-    //     Cosp: data.power[0].cosp,
-    //     ActivePower: data.power[0].activePower,
-    //     Energy: data.power[0].energy,
-    // }));
+    // Create the first day of the month and today's date
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
-    const energyData = item.data.map(data => ({
-        timestamp: data.timestamp,
-        Energy: data.power[0].energy,
-    }));
+    // Initialize state with the first day of the month and today's date
+    const [startDate, setStartDate] = useState<Date>(firstDayOfMonth);
+    const [endDate, setEndDate] = useState<Date>(today);
+    const [tempStartDate, setTempStartDate] = useState<Date | undefined>();
+    const [tempEndDate, setTempEndDate] = useState<Date | undefined>();
+    const [settingError, setSettingError] = useState<string | null>(null);
+    const [startDateOpen, setStartDateOpen] = useState(false);
+    const [endDateOpen, setEndDateOpen] = useState(false);
+    const [dialogOpen, setDialogOpen] = useState(false);
 
-    const voltageData = item.data.map(data => ({
-        timestamp: data.timestamp,
-        PhaseA: data.voltage[0].phaseA,
-        PhaseB: data.voltage[0].phaseB,
-        PhaseC: data.voltage[0].phaseC,
-    }));
+    const { data: location } = useQuery({
+        queryKey: ['location', deviceId],
+        queryFn: () => getDeviceAttributes({
+            deviceId: deviceId as string,
+            keys: ['location'],
+        }),
+        enabled: !!deviceId,
+    });
 
-    const currentData = item.data.map(data => ({
-        timestamp: data.timestamp,
-        CurrentA: data.current[0].currentA,
-        CurrentB: data.current[0].currentB,
-        CurrentC: data.current[0].currentC,
-    }));
+    // Get device information
+    const { data: device } = useQuery({
+        queryKey: ['device', deviceId],
+        queryFn: () => getDeviceById(
+            deviceId as string
+        ),
+        enabled: !!deviceId,
+    });
 
+    const handleStartDateChange = (date: Date | undefined) => {
+        if (date) {
+            setTempStartDate(date);
+        }
+        setStartDateOpen(false); // Close popover when date is selected
+    };
+
+    const handleEndDateChange = (date: Date | undefined) => {
+        if (date) {
+            setTempEndDate(date);
+        }
+        setEndDateOpen(false); // Close popover when date is selected
+    };
+
+    const handleSaveChanges = () => {
+        if (tempStartDate && tempEndDate && tempStartDate > tempEndDate) {
+            setSettingError("Start date cannot be later than end date.");
+        } else {
+            setSettingError(null);
+            setStartDate(tempStartDate ?? startDate); // Use the existing date if tempStartDate is undefined
+            setEndDate(tempEndDate ?? endDate);       // Use the existing date if tempEndDate is undefined
+            setTimeout(tempTimeout);
+            setDialogOpen(false); // Close dialog when changes are saved
+
+            // Clear date pickers
+            setTempStartDate(undefined);
+            setTempEndDate(undefined);
+        }
+    };
 
     return (
-        <main className='grid gap-2 p-4'>
-            <Label className="grid grid-cols-1 mb-4 text-2xl font-bold text-center">
-                Device Detail
-            </Label>
-
-            <div className='grid grid-cols-1 gap-2 sm:grid-cols-3'>
-                <Card className="h-[300px]">
-                    <CardHeader>
-                        <CardTitle>Voltage</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ChartContainer config={chartConfig} className="min-h-[200px] w-full p-2">
-                            <LineChart accessibilityLayer data={voltageData}>
-                                <CartesianGrid vertical={false} />
-                                <XAxis dataKey="timestamp" />
-                                <YAxis domain={["dataMin", "dataMax"]} tickCount={5} />
-                                <ChartTooltip content={<ChartTooltipContent />} />
-                                <ChartLegend content={<ChartLegendContent />} />
-                                <Line dataKey="PhaseA" stroke={chartConfig.phase1.color} strokeWidth={2} type="monotone" dot={false} />
-                                <Line dataKey="PhaseB" stroke={chartConfig.phase2.color} strokeWidth={2} type="monotone" dot={false} />
-                                <Line dataKey="PhaseC" stroke={chartConfig.phase3.color} strokeWidth={2} type="monotone" dot={false} />
-                            </LineChart>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
-
-                <Card className="h-[300px]">
-                    <CardHeader>
-                        <CardTitle>Current</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ChartContainer config={chartConfig} className="aspect-auto h-[250px] w-full p-2">
-                            <AreaChart data={currentData}>
-                                <defs>
-                                    <linearGradient id="fillCurrentA" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor={chartConfig.phase1.color} stopOpacity={0.9} />
-                                        <stop offset="100%" stopColor={chartConfig.phase1.color} stopOpacity={0.2} />
-                                    </linearGradient>
-                                    <linearGradient id="fillCurrentB" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor={chartConfig.phase2.color} stopOpacity={0.9} />
-                                        <stop offset="100%" stopColor={chartConfig.phase2.color} stopOpacity={0.2} />
-                                    </linearGradient>
-                                    <linearGradient id="fillCurrentC" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor={chartConfig.phase3.color} stopOpacity={0.9} />
-                                        <stop offset="100%" stopColor={chartConfig.phase3.color} stopOpacity={0.2} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid vertical={false} />
-                                <XAxis dataKey="timestamp" />
-                                <YAxis domain={["dataMin", "dataMax"]} tickCount={5} />
-                                <ChartTooltip
-                                    cursor={false}
-                                    content={
-                                        <ChartTooltipContent
-                                            labelFormatter={(value) => new Date(value).toLocaleDateString("en-US", {
-                                                month: "short",
-                                                day: "numeric",
-                                            })}
-                                            indicator="dot"
-                                        />
-                                    }
-                                />
-                                <Area dataKey="CurrentA" type="natural" fill="url(#fillCurrentA)" stroke={chartConfig.phase1.color} stackId="a" />
-                                <Area dataKey="CurrentB" type="natural" fill="url(#fillCurrentB)" stroke={chartConfig.phase2.color} stackId="a" />
-                                <Area dataKey="CurrentC" type="natural" fill="url(#fillCurrentC)" stroke={chartConfig.phase3.color} stackId="a" />
-                                <ChartLegend content={<ChartLegendContent />} />
-                            </AreaChart>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
-
-                <Card className="h-[300px]">
-                    <CardHeader>
-                        <CardTitle>Energy Consumption</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ChartContainer config={chartConfig} className="min-h-[200px] w-full p-2">
-                            <BarChart accessibilityLayer data={energyData}>
-                                <CartesianGrid vertical={false} />
-                                <XAxis dataKey="timestamp" />
-                                <YAxis domain={["dataMin", "dataMax"]} tickCount={5} />
-                                <ChartTooltip content={<ChartTooltipContent />} />
-                                <ChartLegend content={<ChartLegendContent />} />
-                                <Bar dataKey="Energy" fill="var(--color-energy)" radius={4} />
-                            </BarChart>
-                        </ChartContainer>
-                    </CardContent>
-                </Card>
+        <main className='grid gap-2 px-3 py-1'>
+            <div className='flex flex-row items-center justify-between w-full'>
+                <Label className="flex flex-col justify-start gap-1 mb-2 font-bold">
+                    {device?.data.name || 'Unknown'}
+                    <div className='flex flex-row items-center gap-1 text-sm font-normal text-gray-400'>
+                        <MapPin size={12} />
+                        {location?.data && location.data[0].value || 'Unknown'}
+                    </div>
+                </Label>
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" onClick={() => setDialogOpen(true)}>
+                            <Settings className="w-3.5 h-3.5 mr-1" />
+                            Settings
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px] sm:items-center items-start">
+                        <DialogHeader>
+                            <DialogTitle>Settings</DialogTitle>
+                            <DialogDescription>
+                                Make changes to your profile here. Click save when you're done.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="flex flex-row items-center justify-end gap-4">
+                                <p className="w-1/4 text-sm text-left text-gray-500">Start date</p>
+                                <Popover open={startDateOpen} onOpenChange={setStartDateOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant={"outline"}
+                                            className={cn(
+                                                "w-[240px] justify-start text-center font-normal",
+                                                !tempStartDate && "text-muted-foreground"
+                                            )}
+                                        >
+                                            {tempStartDate ? format(tempStartDate, "PPP") : <span>Pick a date</span>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent align="start" className="flex flex-col w-auto p-2 space-y-2">
+                                        <Select onValueChange={(value) => handleStartDateChange(addDays(new Date(), parseInt(value)))}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select" />
+                                            </SelectTrigger>
+                                            <SelectContent position="popper">
+                                                <SelectItem value="0">Today</SelectItem>
+                                                <SelectItem value="1">Tomorrow</SelectItem>
+                                                <SelectItem value="3">In 3 days</SelectItem>
+                                                <SelectItem value="7">In a week</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <div className="border rounded-md">
+                                            <Calendar mode="single" selected={tempStartDate} onSelect={handleStartDateChange} />
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                            <div className="flex flex-row items-center justify-end gap-4">
+                                <p className="w-1/4 text-sm text-left text-gray-500">End date</p>
+                                <Popover open={endDateOpen} onOpenChange={setEndDateOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant={"outline"}
+                                            className={cn(
+                                                "w-[240px] justify-start text-center font-normal",
+                                                !tempEndDate && "text-muted-foreground"
+                                            )}
+                                        >
+                                            {tempEndDate ? format(tempEndDate, "PPP") : <span>Pick a date</span>}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent align="start" className="flex flex-col w-auto p-2 space-y-2">
+                                        <Select onValueChange={(value) => handleEndDateChange(addDays(new Date(), parseInt(value)))}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select" />
+                                            </SelectTrigger>
+                                            <SelectContent position="popper">
+                                                <SelectItem value="0">Today</SelectItem>
+                                                <SelectItem value="1">Tomorrow</SelectItem>
+                                                <SelectItem value="3">In 3 days</SelectItem>
+                                                <SelectItem value="7">In a week</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <div className="border rounded-md">
+                                            <Calendar mode="single" selected={tempEndDate} onSelect={handleEndDateChange} />
+                                        </div>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                            <div className="flex flex-row items-center justify-between gap-4">
+                                <p className="w-1/4 text-sm text-left text-gray-500">Interval</p>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button size="icon" variant="outline" className="w-[240px] justify-start text-center font-normal p-3 gap-1">
+                                            <Clock className="w-3 h-3" />
+                                            <span className="flex justify-start w-full">{tempTimeout}</span>
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => setTempTimeout('MINUTE')}>
+                                            <p className="w-full">Minute</p>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setTempTimeout('HOUR')}>
+                                            <p className="w-full">Hour</p>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setTempTimeout('DAY')}>
+                                            <p className="w-full">Day</p>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setTempTimeout('WEEK')}>
+                                            <p className="w-full">Week</p>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setTempTimeout('MONTH')}>
+                                            <p className="w-full">Month</p>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </div>
+                        {settingError && <p className="mt-2 text-sm text-red-500">{settingError}</p>}
+                        <DialogFooter>
+                            <Button type="button" onClick={handleSaveChanges}>Save changes</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
-            <div className='grid-container'>
-                <Card className="h-[300px]">
-                    <CardHeader>
-                        <CardTitle>Chart</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {/* Here you can add the chart or data visualization component */}
-                        <p>Chart content goes here</p>
-                    </CardContent>
-                </Card>
-                <Card className="h-[300px]">
-                    <CardHeader>
-                        <CardTitle>Chart</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {/* Here you can add the chart or data visualization component */}
-                        <p>Chart content goes here</p>
-                    </CardContent>
-                </Card>
-                <Card className="h-[300px] col-span-1">
-                    <CardHeader>
-                        <CardTitle>Chart</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {/* Here you can add the chart or data visualization component */}
-                        <p>Chart content goes here</p>
-                    </CardContent>
-                </Card>
+
+            <div className='grid grid-cols-1 gap-2 sm:grid-cols-2'>
+                {/* Voltage Chart */}
+                <VoltageChart deviceId={deviceId} startDate={startDate} endDate={endDate} timeout={timeout} />
+
+                {/* Current Chart */}
+                <CurrentChart deviceId={deviceId} startDate={startDate} endDate={endDate} timeout={timeout} />
+
+                {/* Power Chart */}
+                <PowerChart deviceId={deviceId} startDate={startDate} endDate={endDate} timeout={timeout} />
+
+                {/* Energy Consumption Chart */}
+                <EnergyConsumptionChart deviceId={deviceId} startDate={startDate} endDate={endDate} timeout={timeout} />
             </div>
         </main>
-    )
-}
+    );
+};
 
 export default DeviceDetail;
