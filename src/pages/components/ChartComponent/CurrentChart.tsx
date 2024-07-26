@@ -69,6 +69,8 @@ const CurrentChart = ({ deviceId, startDate, endDate, timeout }: DeviceDetailPro
     const startDateISO = toISODate(startDate);
     const endDateISO = toISODate(endDate);
 
+    const intervalType = timeout === "REALTIME" ? "MINUTE" : timeout;
+
     const { data: latestCurrentData, isLoading, error } = useQuery({
         queryKey: ['latestCurrentData', deviceId, startDateISO, endDateISO],
         queryFn: () => getLatestData({
@@ -77,7 +79,7 @@ const CurrentChart = ({ deviceId, startDate, endDate, timeout }: DeviceDetailPro
             end: endDateISO!,
             key: 'Current',
             interval: 1,
-            intervalType: timeout,
+            intervalType: intervalType,
             aggType: 'MAX',
         }),
         staleTime: 60000, // Cache data for 1 minute
@@ -153,7 +155,7 @@ const CurrentChart = ({ deviceId, startDate, endDate, timeout }: DeviceDetailPro
                             }
                         />
                         <Legend formatter={customLegendFormatter} />
-                        <Bar dataKey="Current" fill="var(--color-current2)" stroke="var(--color-current2)" type="monotone" />
+                        <Bar dataKey="Current" fill="var(--color-current2)" stroke="var(--color-current2)" type="monotone" radius={4} />
                     </BarChart>
                 </ChartContainer>
             </CardContent>

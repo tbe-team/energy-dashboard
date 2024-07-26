@@ -55,17 +55,21 @@ interface DataItem {
 }
 
 const VoltageChart = ({ deviceId, startDate, endDate, timeout }: DeviceDetailProps) => {
-
-    // Hàm để chuyển đổi ngày sang định dạng ISO với múi giờ địa phương
+    // Hàm để chuyển đổi ngày sang định dạng ISO với múi giờ +07:00
     const toISODate = (date?: Date | string) => {
         if (!date) return undefined;
         const dateObj = typeof date === 'string' ? new Date(date) : date;
-        return new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60000).toISOString();
+        const offset = 7 * 60 * 60 * 1000; // +07:00 in milliseconds
+        const localDate = new Date(dateObj.getTime() + offset);
+        return localDate.toISOString().replace('Z', '+07:00');
     };
 
     // Chuyển đổi startDate và endDate sang định dạng ISO
     const startDateISO = toISODate(startDate);
     const endDateISO = toISODate(endDate);
+
+    // Determine the interval type
+    const intervalType = timeout === "REALTIME" ? "MINUTE" : timeout;
 
     const { data: latestVoltageData, isLoading, error } = useQuery({
         queryKey: ['latestVoltageData', deviceId, startDateISO, endDateISO],
@@ -75,11 +79,12 @@ const VoltageChart = ({ deviceId, startDate, endDate, timeout }: DeviceDetailPro
             end: endDateISO!,
             key: 'Voltage',
             interval: 1,
-            intervalType: timeout,
+            intervalType: intervalType,
             aggType: 'MAX',
         }),
         staleTime: 60000, // Cache data for 1 minute
         enabled: !!deviceId && !!startDateISO && !!endDateISO,
+        refetchInterval: 6000, // Refetch data every 6 seconds
     });
 
     // Handle loading and error states

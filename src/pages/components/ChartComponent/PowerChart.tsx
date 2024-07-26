@@ -67,6 +67,8 @@ const PowerChart = ({ deviceId, startDate, endDate, timeout }: DeviceDetailProps
     const startDateISO = toISODate(startDate);
     const endDateISO = toISODate(endDate);
 
+    const intervalType = timeout === "REALTIME" ? "MINUTE" : timeout;
+
     const { data: latestPowerData, isLoading, error } = useQuery({
         queryKey: ['latestPowerData', deviceId, startDateISO, endDateISO],
         queryFn: () => getLatestData({
@@ -75,7 +77,7 @@ const PowerChart = ({ deviceId, startDate, endDate, timeout }: DeviceDetailProps
             end: endDateISO!,
             key: 'Power',
             interval: 1,
-            intervalType: timeout,
+            intervalType: intervalType,
             aggType: 'MAX',
         }),
         staleTime: 60000, // Cache data for 1 minute
@@ -150,7 +152,7 @@ const PowerChart = ({ deviceId, startDate, endDate, timeout }: DeviceDetailProps
                             }
                         />
                         <Legend formatter={customLegendFormatter} />
-                        <Bar dataKey="ActivePower" fill="var(--color-activePower)" stroke="var(--color-activePower)" type="monotone" />
+                        <Bar dataKey="ActivePower" fill="var(--color-activePower)" stroke="var(--color-activePower)" type="monotone" radius={4} />
                     </BarChart>
                 </ChartContainer>
             </CardContent>

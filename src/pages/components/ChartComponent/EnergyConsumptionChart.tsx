@@ -67,6 +67,8 @@ const EnergyConsumptionChart = ({ deviceId, startDate, endDate, timeout }: Devic
     const startDateISO = toISODate(startDate);
     const endDateISO = toISODate(endDate);
 
+    const intervalType = timeout === "REALTIME" ? "MINUTE" : timeout;
+
     const { data: latestEnergyData, isLoading, error } = useQuery({
         queryKey: ['latestEnergyData', deviceId, startDateISO, endDateISO],
         queryFn: () => getLatestData({
@@ -75,7 +77,7 @@ const EnergyConsumptionChart = ({ deviceId, startDate, endDate, timeout }: Devic
             end: endDateISO!,
             key: 'Total kWh',
             interval: 1,
-            intervalType: timeout,
+            intervalType: intervalType,
             aggType: 'MAX',
         }),
         staleTime: 60000, // Cache data for 1 minute

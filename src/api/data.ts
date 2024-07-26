@@ -16,6 +16,7 @@ export function getLatestData(params: {
         interval_type: params.intervalType,
         interval: params.interval,
         agg_type: params.aggType,
+        limit: 100,
     };
     return http.get("/telemetry/metrics/values", { params: q });
 }
