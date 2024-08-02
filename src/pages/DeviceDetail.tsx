@@ -51,8 +51,8 @@ const DeviceDetail = () => {
     // Initialize state with the first day of the month and today's date
     const [startDate, setStartDate] = useState<Date>(firstDayOfMonth);
     const [endDate, setEndDate] = useState<Date>(today);
-    const [tempStartDate, setTempStartDate] = useState<Date | undefined>();
-    const [tempEndDate, setTempEndDate] = useState<Date | undefined>();
+    const [tempStartDate, setTempStartDate] = useState<Date | undefined>(firstDayOfMonth);
+    const [tempEndDate, setTempEndDate] = useState<Date | undefined>(today);
     const [settingError, setSettingError] = useState<string | null>(null);
     const [startDateOpen, setStartDateOpen] = useState(false);
     const [endDateOpen, setEndDateOpen] = useState(false);

@@ -68,12 +68,4 @@
   body {
     @apply bg-background text-foreground;
   }
-
-  .grid-container {
-    @apply bg-[var(--chart-1)];
-    display: grid;
-    grid-template-columns: calc(20%) calc(40% - 0.5rem) calc(40% - 0.5rem);
-    gap: 0.5rem;
-  }
-  
 }
